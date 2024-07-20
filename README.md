@@ -1,7 +1,7 @@
 ## Disk based binary search tree
 just a simple disk serialized binary search tree.
 
-It can be used in an LSM kv store for flushing the memtable to disk as a binary search tree.
+It can be used in a LSM kv store for flushing the memtable to disk as a binary search tree.
 
 ### Example usage:
 
