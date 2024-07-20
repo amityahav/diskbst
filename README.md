@@ -10,7 +10,7 @@ package main
 
 import (
 	"fmt"
-	diskbst "github.com/amityahav/disk_bst"
+	"github.com/amityahav/diskbst"
 )
 
 func main() {
