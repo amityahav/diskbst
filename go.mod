@@ -1,3 +1,3 @@
-module github.com/amityahav/disk_bst
+module github.com/amityahav/diskbst
 
 go 1.21.4
