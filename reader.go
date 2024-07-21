@@ -25,6 +25,17 @@ func OpenReader(pathName string) (Reader, error) {
 
 	defer f.Close()
 
+	// validate magic number
+	mn := make([]byte, len(magicNumber))
+	_, err = f.Read(mn)
+	if err != nil {
+		return nil, err
+	}
+
+	if bytes.Compare(mn, magicNumber) != 0 {
+		return nil, errInvalidMagicNumber
+	}
+
 	info, err := f.Stat()
 	if err != nil {
 		return nil, err
@@ -41,16 +52,14 @@ func OpenReader(pathName string) (Reader, error) {
 }
 
 func (r *reader) Get(key []byte) ([]byte, error) {
-	if len(r.data) == 0 {
+	if len(r.data) == len(magicNumber) {
 		return nil, errKeyNotFound
 	}
 
-	var (
-		currPos  uint64
-		currNode node
-	)
+	var currNode node
 
 	// skip node size as it is not utilized by the reader
+	currPos := uint64(len(magicNumber))
 	currPos += 8
 
 	for currPos < uint64(len(r.data)) {

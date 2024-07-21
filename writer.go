@@ -3,6 +3,7 @@ package diskbst
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 )
@@ -20,9 +21,40 @@ type Writer interface {
 func OpenWriter(pathName string) (Writer, error) {
 	var w writer
 
-	cursor, err := os.OpenFile(pathName, os.O_RDWR|os.O_CREATE, 0755)
+	var justCreated bool
+
+	cursor, err := os.OpenFile(pathName, os.O_RDWR, 0755)
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+
+		// create file
+		cursor, err = os.OpenFile(pathName, os.O_RDWR|os.O_CREATE, 0755)
+		if err != nil {
+			return nil, err
+		}
+
+		// write magic number
+		_, err = cursor.Write(magicNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		justCreated = true
+	}
+
+	if !justCreated {
+		// validate magic number
+		mn := make([]byte, len(magicNumber))
+		_, err = cursor.Read(mn)
+		if err != nil {
+			return nil, err
+		}
+
+		if bytes.Compare(mn, magicNumber) != 0 {
+			return nil, errInvalidMagicNumber
+		}
 	}
 
 	w.cursor = cursor
@@ -61,7 +93,7 @@ func (w *writer) Put(key []byte, value []byte) error {
 
 	newTail := w.tail + int64(n)
 
-	if isRoot := pos == 0; isRoot {
+	if isRoot := pos == int64(len(magicNumber)); isRoot {
 		w.tail = newTail
 		return nil
 	}
@@ -89,15 +121,17 @@ func (w *writer) Close() {
 
 func (w *writer) findPos(key []byte) (int64, error) {
 	var (
-		currPos        int64
 		currNode       node
 		childPtrOffset int64
 	)
 	nodeSize := make([]byte, 8)
 
-	if w.tail == 0 {
-		return currPos, nil
+	if w.tail == int64(len(magicNumber)) {
+		// first node
+		return w.tail, nil
 	}
+
+	currPos := int64(len(magicNumber))
 
 	for {
 		n, err := w.cursor.ReadAt(nodeSize, currPos)
@@ -148,3 +182,8 @@ func (w *writer) findPos(key []byte) (int64, error) {
 
 	return childPtrOffset, nil
 }
+
+var (
+	magicNumber           = []byte{0xD, 0xB, 0xD}
+	errInvalidMagicNumber = errors.New("invalid magic number")
+)
