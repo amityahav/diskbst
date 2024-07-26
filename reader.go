@@ -13,6 +13,7 @@ type reader struct {
 
 type Reader interface {
 	Get(key []byte) ([]byte, error)
+	Close()
 }
 
 func OpenReader(pathName string) (Reader, error) {
@@ -90,6 +91,10 @@ func (r *reader) Get(key []byte) ([]byte, error) {
 	}
 
 	return nil, errKeyNotFound
+}
+
+func (r *reader) Close() {
+	_ = syscall.Munmap(r.data)
 }
 
 var errKeyNotFound = errors.New("key not found")

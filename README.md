@@ -33,6 +33,7 @@ func main() {
 	// Open a reader for the tree
 	// the tree file will be memory-mapped
 	reader, _ := diskbst.OpenReader("/path/to/bst")
+	defer reader.Close()
 
 	val, _ := reader.Get([]byte("key1"))
 	fmt.Printf(string(val)) // value1
